@@ -5,57 +5,57 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Get Version via powershell
-        id: get_version
-        run: |
-         $version = [System.Version]::Parse((Get-Content TouchTracking.MAUI/TouchTracking.MAUI.csproj | Select-String -Pattern "<Version>(.*)</Version>").Matches.Groups[1].Value)
-         $env:CURRENT_VERSION = $version.ToString()
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-      - name: Build
-        run: |
-          dotnet workload install maui --ignore-failed-sources
-          cd NetPalette
-          dotnet restore
-          dotnet build --no-restore --configuration Release
-      - name: Publish NuGet
-        # You may pin to the exact commit or the version.
-        # uses: brandedoutcast/publish-nuget@c12b8546b67672ee38ac87bea491ac94a587f7cc
-        uses: alirezanet/publish-nuget@v3.0.4
-        with:
-          # Filepath of the project to be packaged, relative to root of repository
-          PROJECT_FILE_PATH: TouchTracking.MAUI/TouchTracking.MAUI.csproj
-          # API key to authenticate with NuGet server
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
-      - name: Push Nupkg to GitHub Packages
-        # You may pin to the exact commit or the version.
-        # uses: tanaka-takayoshi/nuget-publish-to-github-packages-action@462b6006e5c90f732d030b0ace2c3e7ee9d550bc
-        uses: tanaka-takayoshi/nuget-publish-to-github-packages-action@v2.1
-        with:
-          # Path of NuPkg
-          nupkg-path: "**/*.nupkg"
-          # package repository owner
-          repo-owner: nor0x
-          # user account
-          gh-user: nor0x
-          # access token
-          token: ${{ secrets.GITHUB_TOKEN }}
+	runs-on: windows-latest
+	steps:
+	  - uses: actions/checkout@v2
+	  - name: Get Version via powershell
+		id: get_version
+		run: |
+		 $version = [System.Version]::Parse((Get-Content TouchTracking.MAUI/TouchTracking.MAUI.csproj | Select-String -Pattern "<Version>(.*)</Version>").Matches.Groups[1].Value)
+		 $env:CURRENT_VERSION = $version.ToString()
+	  - name: Setup .NET
+		uses: actions/setup-dotnet@v3
+		with:
+		  dotnet-version: 8.0.x
+	  - name: Build
+		run: |
+		  dotnet workload install maui --ignore-failed-sources
+		  cd NetPalette
+		  dotnet restore
+		  dotnet build --no-restore --configuration Release
+	  - name: Publish NuGet
+		# You may pin to the exact commit or the version.
+		# uses: brandedoutcast/publish-nuget@c12b8546b67672ee38ac87bea491ac94a587f7cc
+		uses: alirezanet/publish-nuget@v3.0.4
+		with:
+		  # Filepath of the project to be packaged, relative to root of repository
+		  PROJECT_FILE_PATH: TouchTracking.MAUI/TouchTracking.MAUI.csproj
+		  # API key to authenticate with NuGet server
+		  NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+	  - name: Push Nupkg to GitHub Packages
+		# You may pin to the exact commit or the version.
+		# uses: tanaka-takayoshi/nuget-publish-to-github-packages-action@462b6006e5c90f732d030b0ace2c3e7ee9d550bc
+		uses: tanaka-takayoshi/nuget-publish-to-github-packages-action@v2.1
+		with:
+		  # Path of NuPkg
+		  nupkg-path: "**/*.nupkg"
+		  # package repository owner
+		  repo-owner: nor0x
+		  # user account
+		  gh-user: nor0x
+		  # access token
+		  token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Bump version and push tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_tag: ${{ steps.get_version.outputs.CURRENT_VERSION }}
-          default_bump: false
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+	  - name: Bump version and push tag
+		id: tag_version
+		uses: mathieudutour/github-tag-action@v6.2
+		with:
+		  github_token: ${{ secrets.GITHUB_TOKEN }}
+		  custom_tag: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+		  default_bump: false
+	  - name: Create a GitHub release
+		uses: ncipollo/release-action@v1
+		with:
+		  tag: ${{ steps.tag_version.outputs.new_tag }}
+		  name: Release ${{ steps.tag_version.outputs.new_tag }}
+		  body: ${{ steps.tag_version.outputs.changelog }}

@@ -4,9 +4,9 @@ using UIKit;
 
 namespace TouchTracking.iOS;
 
-	class TouchRecognizer : UIGestureRecognizer
+class TouchRecognizer : UIGestureRecognizer
 {
-    private readonly UIView _view;            // iOS UIView 
+    private readonly UIView _view;          // iOS UIView 
     private readonly TouchHandler _touchHandler;
     bool _capture;
 

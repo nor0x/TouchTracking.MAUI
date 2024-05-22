@@ -1,5 +1,5 @@
 ﻿using Microsoft.UI.Xaml;
-using TouchTracking.UWP;
+using TouchTracking.WinUI;
 
 namespace TouchTracking;
 
