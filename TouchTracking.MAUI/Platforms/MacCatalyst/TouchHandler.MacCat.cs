@@ -1,31 +1,29 @@
-﻿using TouchTracking;
-using UIKit;
+﻿using UIKit;
 
-namespace TouchTracking.iOS
+namespace TouchTracking.iOS;
+
+public class TouchHandler : TouchHandlerBase<UIView>
 {
-    public class TouchHandler : TouchHandlerBase<UIView>
+    TouchRecognizer _touchRecognizer;
+
+    public override void RegisterEvents(UIView view)
     {
-        TouchRecognizer _touchRecognizer;
-
-        public override void RegisterEvents(UIView view)
+        if (view != null)
         {
-            if (view != null)
-            {
-                _touchRecognizer = new TouchRecognizer(view, this);
-                view.AddGestureRecognizer(_touchRecognizer);
-            }
+            _touchRecognizer = new TouchRecognizer(view, this);
+            view.AddGestureRecognizer(_touchRecognizer);
         }
+    }
 
-        public override void UnregisterEvents(UIView view)
+    public override void UnregisterEvents(UIView view)
+    {
+        if (_touchRecognizer != null)
         {
-            if (_touchRecognizer != null)
-            {
-                // Clean up the TouchRecognizer object
-                _touchRecognizer.Detach();
+            // Clean up the TouchRecognizer object
+            _touchRecognizer.Detach();
 
-                // Remove the TouchRecognizer from the UIView
-                view.RemoveGestureRecognizer(_touchRecognizer);
-            }
+            // Remove the TouchRecognizer from the UIView
+            view.RemoveGestureRecognizer(_touchRecognizer);
         }
     }
 }

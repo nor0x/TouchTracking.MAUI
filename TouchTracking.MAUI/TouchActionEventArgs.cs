@@ -1,23 +1,20 @@
-﻿using System;
+﻿namespace TouchTracking;
 
-namespace TouchTracking
+public class TouchActionEventArgs : EventArgs
 {
-    public class TouchActionEventArgs : EventArgs
+    public TouchActionEventArgs(long id, TouchActionType type, TouchTrackingPoint location, bool isInContact)
     {
-        public TouchActionEventArgs(long id, TouchActionType type, TouchTrackingPoint location, bool isInContact)
-        {
-            Id = id;
-            Type = type;
-            Location = location;
-            IsInContact = isInContact;
-        }
-
-        public long Id { private set; get; }
-
-        public TouchActionType Type { private set; get; }
-
-        public TouchTrackingPoint Location { private set; get; }
-
-        public bool IsInContact { private set; get; }
+        Id = id;
+        Type = type;
+        Location = location;
+        IsInContact = isInContact;
     }
+
+    public long Id { private set; get; }
+
+    public TouchActionType Type { private set; get; }
+
+    public TouchTrackingPoint Location { private set; get; }
+
+    public bool IsInContact { private set; get; }
 }

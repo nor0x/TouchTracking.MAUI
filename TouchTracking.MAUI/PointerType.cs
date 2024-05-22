@@ -1,9 +1,8 @@
-﻿namespace TouchTracking
+﻿namespace TouchTracking;
+
+public enum PointerType
 {
-    public enum PointerType
-    {
-		Finger,
-		Mouse,
-		Pen,
-	}
+	Finger,
+	Mouse,
+	Pen,
 }

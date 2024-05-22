@@ -1,184 +1,164 @@
 ﻿using Android.Views;
-using System;
-using System.Collections.Generic;
 using View = Android.Views.View;
 
-namespace TouchTracking.Droid
+namespace TouchTracking.Droid;
+
+public class TouchHandler : TouchHandlerBase<View>
 {
-    public class TouchHandler : TouchHandlerBase<View>
+    View _view;
+    bool _capture;
+    Func<double, double> _fromPixels;
+    int[] _locationOnScreen = new int[2];
+
+    static Dictionary<View, TouchHandler> _viewDictionary =
+        new Dictionary<View, TouchHandler>();
+
+    static Dictionary<int, TouchHandler> _idToTouchHandlerDictionary =
+        new Dictionary<int, TouchHandler>();
+
+    private float _lastX;
+    private float _lastY;
+    private float _slop;
+    private bool _moveInProgress;
+
+    public bool UseTouchSlop { get; set; }
+
+    public override void RegisterEvents(View view)
     {
-        View _view;
-        bool _capture;
-        Func<double, double> _fromPixels;
-        int[] _locationOnScreen = new int[2];
+        _view = view;
+        _slop = ViewConfiguration.Get(view.Context).ScaledTouchSlop;
 
-        static Dictionary<View, TouchHandler> _viewDictionary =
-            new Dictionary<View, TouchHandler>();
-
-        static Dictionary<int, TouchHandler> _idToTouchHandlerDictionary =
-            new Dictionary<int, TouchHandler>();
-
-        private float _lastX;
-        private float _lastY;
-        private float _slop;
-        private bool _moveInProgress;
-
-        public bool UseTouchSlop { get; set; }
-
-        public override void RegisterEvents(View view)
+        if (view != null)
         {
-            _view = view;
-            _slop = ViewConfiguration.Get(view.Context).ScaledTouchSlop;
+            _viewDictionary.Add(view, this);
 
-            if (view != null)
-            {
-                _viewDictionary.Add(view, this);
+            _fromPixels = view.Context.FromPixels;
 
-                _fromPixels = view.Context.FromPixels;
-
-                // Set event handler on View
-                view.Touch += OnTouch;
-            }
+            // Set event handler on View
+            view.Touch += OnTouch;
         }
+    }
 
-        public override void UnregisterEvents(View view)
+    public override void UnregisterEvents(View view)
+    {
+        try
         {
-            try
+            view.GetHashCode();
+        }
+        catch (ObjectDisposedException) //view can be already disposed and we have no other way to remove it from dictionary
+        {
+            var newDictionary = new Dictionary<View, TouchHandler>();
+            foreach (KeyValuePair<View, TouchHandler> item in _viewDictionary)
             {
-                view.GetHashCode();
-            }
-            catch (ObjectDisposedException) //view can be already disposed and we have no other way to remove it from dictionary
-            {
-                var newDictionary = new Dictionary<View, TouchHandler>();
-                foreach (KeyValuePair<View, TouchHandler> item in _viewDictionary)
+                try
                 {
-                    try
-                    {
-                        newDictionary[item.Key] = item.Value;
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        continue;
-                    }
+                    newDictionary[item.Key] = item.Value;
                 }
-                _viewDictionary = newDictionary;
-                return;
+                catch (ObjectDisposedException)
+                {
+                    continue;
+                }
             }
-            if (_viewDictionary.ContainsKey(view))
-            {
-                _viewDictionary.Remove(view);
-                view.Touch -= OnTouch;
-            }
+            _viewDictionary = newDictionary;
+            return;
         }
-
-        private TouchTrackingPoint GetScreenPointerCoordinates(
-            int[] screenLocation, MotionEvent motionEvent, int pointerIndex)
+        if (_viewDictionary.ContainsKey(view))
         {
-            var screenPointerCoords =
-                new TouchTrackingPoint(
-                    screenLocation[0] + motionEvent.GetX(pointerIndex),
-                    screenLocation[1] + motionEvent.GetY(pointerIndex));
-
-            return screenPointerCoords;
+            _viewDictionary.Remove(view);
+            view.Touch -= OnTouch;
         }
+    }
 
-        private void OnTouch(object sender, View.TouchEventArgs args)
+    private TouchTrackingPoint GetScreenPointerCoordinates(
+        int[] screenLocation, MotionEvent motionEvent, int pointerIndex)
+    {
+        var screenPointerCoords =
+            new TouchTrackingPoint(
+                screenLocation[0] + motionEvent.GetX(pointerIndex),
+                screenLocation[1] + motionEvent.GetY(pointerIndex));
+
+        return screenPointerCoords;
+    }
+
+    private void OnTouch(object sender, View.TouchEventArgs args)
+    {
+        // Two object common to all the events
+        View senderView = sender as View;
+        MotionEvent motionEvent = args.Event;
+
+        // Get the pointer index
+        int pointerIndex = motionEvent.ActionIndex;
+
+        // Get the id that identifies a finger over the course of its progress
+        int id = motionEvent.GetPointerId(pointerIndex);
+
+        senderView.GetLocationOnScreen(_locationOnScreen);
+        TouchTrackingPoint screenPointerCoords =
+            GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
+
+
+        // Use ActionMasked here rather than Action to reduce the number of possibilities
+        switch (args.Event.ActionMasked)
         {
-            // Two object common to all the events
-            View senderView = sender as View;
-            MotionEvent motionEvent = args.Event;
+            case MotionEventActions.Down:
+            case MotionEventActions.PointerDown:
+                FireEvent(this, id, TouchActionType.Pressed, screenPointerCoords, true);
 
-            // Get the pointer index
-            int pointerIndex = motionEvent.ActionIndex;
+                _idToTouchHandlerDictionary.Add(id, this);
 
-            // Get the id that identifies a finger over the course of its progress
-            int id = motionEvent.GetPointerId(pointerIndex);
+                _capture = Capture;
 
-            senderView.GetLocationOnScreen(_locationOnScreen);
-            TouchTrackingPoint screenPointerCoords =
-                GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
+                if (UseTouchSlop)
+                {
+                    _lastX = args.Event.GetX();
+                    _lastY = args.Event.GetY();
+                }
+                break;
 
+            case MotionEventActions.Move:
+                if (motionEvent.PointerCount == 1 && UseTouchSlop)
+                {
+                    id = motionEvent.GetPointerId(0);
+                    senderView.GetLocationOnScreen(_locationOnScreen);
 
-            // Use ActionMasked here rather than Action to reduce the number of possibilities
-            switch (args.Event.ActionMasked)
-            {
-                case MotionEventActions.Down:
-                case MotionEventActions.PointerDown:
-                    FireEvent(this, id, TouchActionType.Pressed, screenPointerCoords, true);
-
-                    _idToTouchHandlerDictionary.Add(id, this);
-
-                    _capture = Capture;
-
-                    if (UseTouchSlop)
+                    if (!_moveInProgress)
                     {
-                        _lastX = args.Event.GetX();
-                        _lastY = args.Event.GetY();
+                        var x = args.Event.GetX();
+                        var y = args.Event.GetY();
+
+                        var xDiff = Math.Abs(_lastX - x);
+                        var yDiff = Math.Abs(_lastY - y);
+
+                        if (xDiff > _slop || yDiff > _slop)
+                        {
+                            _moveInProgress = true;
+                        }
                     }
+
+                    if (_moveInProgress)
+                    {
+                        screenPointerCoords = GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
+                        FireEvent(this, id, TouchActionType.Moved, screenPointerCoords, true);
+                    }
+
                     break;
+                }
 
-                case MotionEventActions.Move:
-                    if (motionEvent.PointerCount == 1 && UseTouchSlop)
-                    {
-                        id = motionEvent.GetPointerId(0);
-                        senderView.GetLocationOnScreen(_locationOnScreen);
+                _moveInProgress = false;
+                _lastX = 0;
+                _lastY = 0;
 
-                        if (!_moveInProgress)
-                        {
-                            var x = args.Event.GetX();
-                            var y = args.Event.GetY();
+                // Multiple Move events are bundled, so handle them in a loop
+                for (pointerIndex = 0; pointerIndex < motionEvent.PointerCount; pointerIndex++)
+                {
+                    id = motionEvent.GetPointerId(pointerIndex);
 
-                            var xDiff = Math.Abs(_lastX - x);
-                            var yDiff = Math.Abs(_lastY - y);
-
-                            if (xDiff > _slop || yDiff > _slop)
-                            {
-                                _moveInProgress = true;
-                            }
-                        }
-
-                        if (_moveInProgress)
-                        {
-                            screenPointerCoords = GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
-                            FireEvent(this, id, TouchActionType.Moved, screenPointerCoords, true);
-                        }
-
-                        break;
-                    }
-
-                    _moveInProgress = false;
-                    _lastX = 0;
-                    _lastY = 0;
-
-                    // Multiple Move events are bundled, so handle them in a loop
-                    for (pointerIndex = 0; pointerIndex < motionEvent.PointerCount; pointerIndex++)
-                    {
-                        id = motionEvent.GetPointerId(pointerIndex);
-
-                        if (_capture)
-                        {
-                            senderView.GetLocationOnScreen(_locationOnScreen);
-
-                            screenPointerCoords = GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
-                            FireEvent(this, id, TouchActionType.Moved, screenPointerCoords, true);
-                        }
-                        else
-                        {
-                            CheckForBoundaryHop(id, screenPointerCoords);
-
-                            if (_idToTouchHandlerDictionary[id] != null)
-                            {
-                                FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Moved, screenPointerCoords, true);
-                            }
-                        }
-                    }
-                    break;
-
-                case MotionEventActions.Up:
-                case MotionEventActions.Pointer1Up:
                     if (_capture)
                     {
-                        FireEvent(this, id, TouchActionType.Released, screenPointerCoords, false);
+                        senderView.GetLocationOnScreen(_locationOnScreen);
+
+                        screenPointerCoords = GetScreenPointerCoordinates(_locationOnScreen, motionEvent, pointerIndex);
+                        FireEvent(this, id, TouchActionType.Moved, screenPointerCoords, true);
                     }
                     else
                     {
@@ -186,85 +166,102 @@ namespace TouchTracking.Droid
 
                         if (_idToTouchHandlerDictionary[id] != null)
                         {
-                            FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Released, screenPointerCoords, false);
+                            FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Moved, screenPointerCoords, true);
                         }
                     }
-                    _idToTouchHandlerDictionary.Remove(id);
+                }
+                break;
 
-                    _moveInProgress = false;
-                    _lastX = 0;
-                    _lastY = 0;
-                    break;
+            case MotionEventActions.Up:
+            case MotionEventActions.Pointer1Up:
+                if (_capture)
+                {
+                    FireEvent(this, id, TouchActionType.Released, screenPointerCoords, false);
+                }
+                else
+                {
+                    CheckForBoundaryHop(id, screenPointerCoords);
 
-                case MotionEventActions.Cancel:
-                    if (_capture)
+                    if (_idToTouchHandlerDictionary[id] != null)
                     {
-                        FireEvent(this, id, TouchActionType.Cancelled, screenPointerCoords, false);
+                        FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Released, screenPointerCoords, false);
                     }
-                    else
+                }
+                _idToTouchHandlerDictionary.Remove(id);
+
+                _moveInProgress = false;
+                _lastX = 0;
+                _lastY = 0;
+                break;
+
+            case MotionEventActions.Cancel:
+                if (_capture)
+                {
+                    FireEvent(this, id, TouchActionType.Cancelled, screenPointerCoords, false);
+                }
+                else
+                {
+                    if (_idToTouchHandlerDictionary[id] != null)
                     {
-                        if (_idToTouchHandlerDictionary[id] != null)
-                        {
-                            FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Cancelled, screenPointerCoords, false);
-                        }
+                        FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Cancelled, screenPointerCoords, false);
                     }
-                    _idToTouchHandlerDictionary.Remove(id);
+                }
+                _idToTouchHandlerDictionary.Remove(id);
 
-                    _moveInProgress = false;
-                    _lastX = 0;
-                    _lastY = 0;
-                    break;
-            }
+                _moveInProgress = false;
+                _lastX = 0;
+                _lastY = 0;
+                break;
         }
+    }
 
-        private void CheckForBoundaryHop(int id, TouchTrackingPoint pointerLocation)
+    private void CheckForBoundaryHop(int id, TouchTrackingPoint pointerLocation)
+    {
+        TouchHandler touchEffectHit = null;
+
+        foreach (View view in _viewDictionary.Keys)
         {
-            TouchHandler touchEffectHit = null;
-
-            foreach (View view in _viewDictionary.Keys)
+            // Get the view rectangle
+            try
             {
-                // Get the view rectangle
-                try
-                {
-                    view.GetLocationOnScreen(_locationOnScreen);
-                }
-                catch // System.ObjectDisposedException: Cannot access a disposed object.
-                {
-                    continue;
-                }
-                TouchTrackingRect viewRect = new TouchTrackingRect(_locationOnScreen[0], _locationOnScreen[1], view.Width, view.Height);
-
-                if (viewRect.Contains(pointerLocation))
-                {
-                    touchEffectHit = _viewDictionary[view];
-                }
+                view.GetLocationOnScreen(_locationOnScreen);
             }
-
-            if (touchEffectHit != _idToTouchHandlerDictionary[id])
+            catch // System.ObjectDisposedException: Cannot access a disposed object.
             {
-                if (_idToTouchHandlerDictionary[id] != null)
-                {
-                    FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Exited, pointerLocation, true);
-                }
-                if (touchEffectHit != null)
-                {
-                    FireEvent(touchEffectHit, id, TouchActionType.Entered, pointerLocation, true);
-                }
-                _idToTouchHandlerDictionary[id] = touchEffectHit;
+                continue;
+            }
+            TouchTrackingRect viewRect = new TouchTrackingRect(_locationOnScreen[0], _locationOnScreen[1], view.Width, view.Height);
+
+            if (viewRect.Contains(pointerLocation))
+            {
+                touchEffectHit = _viewDictionary[view];
             }
         }
 
-        private void FireEvent(TouchHandler touchEffect, int id, TouchActionType actionType, TouchTrackingPoint pointerLocation, bool isInContact)
+        if (touchEffectHit != _idToTouchHandlerDictionary[id])
         {
-            // Get the location of the pointer within the view
-            touchEffect._view.GetLocationOnScreen(_locationOnScreen);
-            double x = pointerLocation.X - _locationOnScreen[0];
-            double y = pointerLocation.Y - _locationOnScreen[1];
-            TouchTrackingPoint point = new TouchTrackingPoint((float)_fromPixels(x), (float)_fromPixels(y));
-
-            // Call the method
-            OnTouchAction(touchEffect._view,
-                new TouchActionEventArgs(id, actionType, point, isInContact));
+            if (_idToTouchHandlerDictionary[id] != null)
+            {
+                FireEvent(_idToTouchHandlerDictionary[id], id, TouchActionType.Exited, pointerLocation, true);
+            }
+            if (touchEffectHit != null)
+            {
+                FireEvent(touchEffectHit, id, TouchActionType.Entered, pointerLocation, true);
+            }
+            _idToTouchHandlerDictionary[id] = touchEffectHit;
         }
+    }
+
+    private void FireEvent(TouchHandler touchEffect, int id, TouchActionType actionType, TouchTrackingPoint pointerLocation, bool isInContact)
+    {
+        // Get the location of the pointer within the view
+        touchEffect._view.GetLocationOnScreen(_locationOnScreen);
+        double x = pointerLocation.X - _locationOnScreen[0];
+        double y = pointerLocation.Y - _locationOnScreen[1];
+        TouchTrackingPoint point = new TouchTrackingPoint((float)_fromPixels(x), (float)_fromPixels(y));
+
+        // Call the method
+        OnTouchAction(touchEffect._view,
+            new TouchActionEventArgs(id, actionType, point, isInContact));
     }
 }
