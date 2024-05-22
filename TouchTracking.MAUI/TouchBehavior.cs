@@ -7,7 +7,7 @@ public partial class TouchTrackingBehavior
 
 	public bool Capture { set; get; }
 
-	public bool Enabled { set; get; }
+	public bool Enabled { set; get; } = true;
 
 	public void OnTouchAction(object element, TouchActionEventArgs args)
 	{

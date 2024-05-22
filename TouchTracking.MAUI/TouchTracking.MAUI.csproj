@@ -21,9 +21,9 @@
 	<!-- NuGet -->
 	<PropertyGroup>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<AssemblyVersion>0.0.3</AssemblyVersion>
-		<AssemblyFileVersion>0.0.3</AssemblyFileVersion>
-		<Version>0.0.3</Version>
+		<AssemblyVersion>0.0.4</AssemblyVersion>
+		<AssemblyFileVersion>0.0.4</AssemblyFileVersion>
+		<Version>0.0.4</Version>
 		<Title>Plugin.MAUI.TouchTracking</Title>
 		<PackageId>Plugin.MAUI.TouchTracking</PackageId>
 		<PackageReleaseNotes>https://github.com/nor0x/TouchTracking.MAUI/releases</PackageReleaseNotes>
