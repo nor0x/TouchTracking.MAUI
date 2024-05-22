@@ -18,6 +18,34 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
 	</PropertyGroup>
 
+	<!-- NuGet -->
+	<PropertyGroup>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<AssemblyVersion>0.0.1</AssemblyVersion>
+		<AssemblyFileVersion>0.0.1</AssemblyFileVersion>
+		<Version>0.0.1</Version>
+		<Title>Plugin.MAUI.TouchTracking</Title>
+		<PackageId>Plugin.MAUI.TouchTracking</PackageId>
+		<PackageReleaseNotes>https://github.com/nor0x/TouchTracking.MAUI/releases</PackageReleaseNotes>
+		<PackageProjectUrl>https://github.com/nor0x/TouchTracking.MAUI</PackageProjectUrl>
+		<PackageIconUrl>https://raw.githubusercontent.com/nor0x/TouchTracking.MAUI/main/Art/packageicon.png</PackageIconUrl>
+		<PackageIcon>packageicon.png</PackageIcon>
+		<RepositoryUrl>https://github.com/nor0x/TouchTracking.MAUI</RepositoryUrl>
+		<PackageTags>dotnet-maui;maui;plugin;touch;touch-tracking;behavior;gesture</PackageTags>
+		<Summary>TouchTracking provides unified API for multi-touch gestures in .NET MAUI</Summary>
+		<Description>TouchTracking provides unified API for multi-touch gestures in .NET MAUI</Description>
+		<Owners>Joachim Leonfellner</Owners>
+		<Authors>Joachim Leonfellner</Authors>
+		<Copyright>Copyright 2024 nor0x</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\Art\packageicon.png" Pack="true" PackagePath="\" />
+		<None Include="..\readme.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
