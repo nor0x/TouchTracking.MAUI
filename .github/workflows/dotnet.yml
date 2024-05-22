@@ -20,7 +20,7 @@ jobs:
       - name: Build
         run: |
           dotnet workload install maui --ignore-failed-sources
-          cd NetPalette
+          cd TouchTracking.MAUI
           dotnet restore
           dotnet build --no-restore --configuration Release
       - name: Publish NuGet
