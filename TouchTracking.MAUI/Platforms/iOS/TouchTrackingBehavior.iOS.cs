@@ -3,7 +3,7 @@ using UIKit;
 
 namespace TouchTracking;
 
-public partial class TouchTrackingBehavior : PlatformBehavior<View, UIView>
+public partial class TouchTrackingBehavior
 {
     private TouchHandler? _touchHandler;
 

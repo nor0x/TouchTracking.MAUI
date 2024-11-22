@@ -1,7 +1,7 @@
 ﻿
 namespace TouchTracking;
 
-public partial class TouchTrackingBehavior
+public partial class TouchTrackingBehavior : PlatformBehavior<View>
 {
 	public event TouchActionEventHandler TouchAction;
 
