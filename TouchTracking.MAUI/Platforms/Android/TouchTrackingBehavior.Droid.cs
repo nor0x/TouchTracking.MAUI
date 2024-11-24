@@ -3,7 +3,7 @@ using TouchTracking.Droid;
 
 namespace TouchTracking;
 
-public partial class TouchTrackingBehavior : PlatformBehavior<View, Android.Views.View>
+public partial class TouchTrackingBehavior
 {
     private TouchHandler _touchHandler;
     private Android.Views.View _view;

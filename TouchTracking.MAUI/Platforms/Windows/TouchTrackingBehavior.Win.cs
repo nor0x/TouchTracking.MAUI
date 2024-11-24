@@ -3,7 +3,7 @@ using TouchTracking.WinUI;
 
 namespace TouchTracking;
 
-public partial class TouchTrackingBehavior : PlatformBehavior<View, FrameworkElement>
+public partial class TouchTrackingBehavior
 {
     private TouchHandler? _touchHandler;
 
