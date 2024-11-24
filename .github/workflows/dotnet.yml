@@ -13,6 +13,11 @@ jobs:
         run: |
          $version = [System.Version]::Parse((Get-Content TouchTracking.MAUI/TouchTracking.MAUI.csproj | Select-String -Pattern "<Version>(.*)</Version>").Matches.Groups[1].Value)
          $env:CURRENT_VERSION = $version.ToString()
+         echo "::set-output name=CURRENT_VERSION::$env:CURRENT_VERSION"
+      - name: Log Current Version
+        run: |
+          echo "Current Version: ${{ steps.get_version.outputs.CURRENT_VERSION }}"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
@@ -32,6 +37,8 @@ jobs:
           PROJECT_FILE_PATH: TouchTracking.MAUI/TouchTracking.MAUI.csproj
           # API key to authenticate with NuGet server
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_COMMIT: false
+
       - name: Push Nupkg to GitHub Packages
         # You may pin to the exact commit or the version.
         # uses: tanaka-takayoshi/nuget-publish-to-github-packages-action@462b6006e5c90f732d030b0ace2c3e7ee9d550bc
@@ -45,9 +52,18 @@ jobs:
           gh-user: nor0x
           # access token
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: false
+          custom_tag: ${{ steps.get_version.outputs.CURRENT_VERSION }}
       - name: Create a GitHub release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+          tag: ${{ steps.tag_version.outputs.new_tag }}
           name: Release ${{ steps.get_version.outputs.CURRENT_VERSION }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+          body: |
+            # Release ${{ steps.get_version.outputs.CURRENT_VERSION }}
+            This release is based on the commit: ${{ github.event.repository.full_name }}@${{ github.sha }}.
