@@ -104,7 +104,10 @@ public class TouchHandler : TouchHandlerBase<View>
             case MotionEventActions.PointerDown:
                 FireEvent(this, id, TouchActionType.Pressed, screenPointerCoords, true);
 
-                _idToTouchHandlerDictionary.Add(id, this);
+                if (_idToTouchHandlerDictionary.ContainsKey(id))
+                    _idToTouchHandlerDictionary[id] = this;
+                else
+                    _idToTouchHandlerDictionary.Add(id, this);
 
                 _capture = Capture;
 
